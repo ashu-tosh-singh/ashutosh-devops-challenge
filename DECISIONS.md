@@ -196,4 +196,24 @@ Strict validation
 Ensures only valid code and configs pass CI  
 
 **Cost / risk:**
-Pipeline may fail more often  
+Pipeline may fail more often
+
+### 12. Decision: Keep Trivy scan non-blocking in CI
+
+**Context:**
+Trivy scan reported many vulnerabilities, mostly from the base image.
+
+**Options considered:**
+- Fail CI on HIGH/CRITICAL — strict but blocks progress  
+- Allow vulnerabilities — practical for development  
+- Fix all vulnerabilities — not feasible within time  
+
+**Chosen:**
+Allow vulnerabilities in CI (exit-code: 0)
+
+**Rationale:**
+Most vulnerabilities come from the base image, not application code.  
+Focus was on visibility rather than blocking deployment.
+
+**Cost / risk:**
+Vulnerabilities still exist and must be addressed before production.

@@ -136,3 +136,16 @@ Broken code could pass CI.
 
 **Fix:**
 Enabled strict validation and added security scan.
+
+### 12. Issue: High number of vulnerabilities in Docker image
+
+**File:** Docker image / CI pipeline
+
+**Problem:**
+Trivy scan detected many HIGH and CRITICAL vulnerabilities, mostly from base OS packages.
+
+**Why it matters:**
+These vulnerabilities can pose security risks in production environments.
+
+**Fix:**
+Added Trivy scan in CI for visibility and monitoring of vulnerabilities.
