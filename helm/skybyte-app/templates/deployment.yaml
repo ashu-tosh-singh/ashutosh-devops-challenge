@@ -16,23 +16,46 @@ spec:
       labels:
         app.kubernetes.io/name: {{ include "skybyte-app.name" . }}
         app.kubernetes.io/instance: {{ .Release.Name }}
+      annotations:
+        {{- if .Values.prometheus.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "{{ .Values.prometheus.path }}"
+        prometheus.io/port: "{{ .Values.prometheus.port }}"
+        {{- end }}
     spec:
       containers:
         - name: app
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+
           ports:
             - name: http
-              containerPort: 80
+              containerPort: {{ .Values.containerPort }}
               protocol: TCP
+
           env:
             - name: API_TOKEN
-              value: {{ .Values.apiToken | quote }}
+              valueFrom:
+                secretKeyRef:
+                  name: api-token
+                  key: token
+
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+
           livenessProbe:
             httpGet:
-              path: /
+              path: {{ .Values.probes.liveness.path }}
               port: http
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
+
           readinessProbe:
             httpGet:
-              path: /
+              path: {{ .Values.probes.readiness.path }}
               port: http
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds }}

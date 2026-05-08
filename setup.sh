@@ -1,19 +1,42 @@
 #!/usr/bin/env bash
-# setup.sh — local deployment helper
-#
-# Builds the image, applies Terraform, installs/upgrades the Helm release.
+set -euo pipefail
+
+echo "==> Validating dependencies"
+
+for cmd in docker terraform kubectl helm; do
+  if ! command -v "$cmd" &> /dev/null; then
+    echo "❌ $cmd is not installed. Please install it first."
+    exit 1
+  fi
+done
+
+echo "==> Validating Kubernetes context"
+
+CURRENT_CONTEXT=$(kubectl config current-context)
+
+if [ "$CURRENT_CONTEXT" != "docker-desktop" ]; then
+  echo "⚠️  Switching context to docker-desktop"
+  kubectl config use-context docker-desktop
+fi
+
+echo "==> Checking cluster connectivity"
+kubectl get nodes >/dev/null
 
 echo "==> Building Docker image"
 docker build -t skybyte/app:latest .
 
 echo "==> Applying Terraform"
-cd terraform
-terraform init
-terraform apply -auto-approve
-cd ..
+pushd terraform >/dev/null
+terraform init -input=false
+terraform apply -auto-approve -input=false
+popd >/dev/null
 
 echo "==> Installing Helm chart"
 helm upgrade --install skybyte-app helm/skybyte-app \
-  --namespace devops-challenge
+  --namespace devops-challenge \
+  --create-namespace
 
-echo "==> Done"
+echo "==> Verifying deployment"
+kubectl rollout status deployment/skybyte-app -n devops-challenge --timeout=60s
+
+echo "==> Setup complete ✅"

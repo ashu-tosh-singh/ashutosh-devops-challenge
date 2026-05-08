@@ -7,27 +7,34 @@ on:
 jobs:
   lint-and-build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 🧪 Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
-      - name: Install flake8
-        run: pip install flake8
+      - name: Install dependencies
+        run: pip install -r requirements.txt flake8
 
       - name: Lint Python
-        run: flake8 app/ --exclude=app/* --exit-zero
+        run: flake8 app/
 
+      # 🔍 Helm
       - name: Set up Helm
         uses: azure/setup-helm@v4
 
       - name: Helm lint
-        run: helm lint helm/skybyte-app || true
+        run: helm lint helm/skybyte-app
 
+      - name: Helm template
+        run: helm template test-release helm/skybyte-app
+
+      # ⚙️ Terraform
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v3
 
@@ -35,7 +42,16 @@ jobs:
         run: |
           cd terraform
           terraform init -backend=false
-          terraform validate || true
+          terraform validate
 
+      # 🐳 Docker
       - name: Build Docker image
         run: docker build -t skybyte/app:ci .
+
+      # 🔐 Security scan
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@v0.20.0
+        with:
+          image-ref: skybyte/app:ci
+          severity: HIGH,CRITICAL
+          exit-code: 1
